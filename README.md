@@ -29,20 +29,19 @@ void aes_cbc_decrypt(struct aes_ctx *ctx, uint8_t *buffer, size_t len);
 #endif
 ```
 
+In order to keep the code small and portable, no padding is done. Therefore, in bytes, the size of `key` must equal `AES_KEY_SIZE`, the size of `iv` must equal `AES_BLK_SIZE` (16) and the size of `buffer` (`len`) must be a multiple of `AES_BLK_SIZE` (16).
+
 Testing
 -------
 - Compile the test binary (`libaes.so` will also be compiled)
 ```
 $ git clone https://github.com/hiatus/libaes.git && cd libaes && make
 ```
+
 - Run it
 ```
 $ ./bin/test
 ```
-
-Notice
-------
-- In order to keep this small and portable, no padding is done. Therefore, in bytes, the size of `key` must equal `AES_KEY_SIZE`, the size of `iv` must equal `AES_BLK_SIZE` (16) and the size of `buffer` (`len`) must be a multiple of `AES_BLK_SIZE` (16).
 
 References
 ---------
