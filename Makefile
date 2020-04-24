@@ -13,11 +13,11 @@ BINS := $(addprefix $(BINDIR)/, libaes.so test)
 all: $(OBJS) $(BINS)
 
 $(BINDIR)/$(TEST): $(OBJS)
-	@echo [$(CC)] $(TEST)
+	@echo [$(CC)] $@
 	@$(CC) -s -o $@ $(OBJS)
 
 $(BINDIR)/$(SLIB): $(OBJDIR)/aes.o
-	@echo [$(CC)] $(SLIB)
+	@echo [$(CC)] $@
 	@$(CC) -fpic -shared -o $@ $<
 
 $(OBJDIR)/test.o: test.c
