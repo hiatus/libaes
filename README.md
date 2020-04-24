@@ -2,12 +2,6 @@ libaes
 ======
 Implementation of the current AES (Rijndael cipher) in ECB and CBC modes for the purpose of studying.
 
-Compilation
------------
-- To test this code: `make && ./aes-test`
-- To build this code as a shared library: `make libaes`
-
-
 API
 ---
 The default `aes.h` header defines the key size as 128 bits and enables both ECB and CBC functions.
@@ -33,6 +27,17 @@ void aes_cbc_init(struct aes_ctx *ctx, const uint8_t *key, const uint8_t *iv);
 void aes_cbc_encrypt(struct aes_ctx *ctx, uint8_t *buffer, size_t len);
 void aes_cbc_decrypt(struct aes_ctx *ctx, uint8_t *buffer, size_t len);
 #endif
+```
+
+Testing
+-------
+- Compile the test binary (`libaes.so` will also be compiled)
+```
+$ git clone https://github.com/hiatus/libaes.git && cd libaes && make
+```
+- Run it
+```
+$ ./bin/test
 ```
 
 Notice

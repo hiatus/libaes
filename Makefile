@@ -1,31 +1,43 @@
-CC := gcc
+TEST := test
+SLIB := libaes.so
 
-TGT := aes
-LIB := libaes.so
-TST := $(TGT)-test
+OBJDIR := obj
+BINDIR := bin
 
-LIB_SRC := $(TGT).c
-TST_SRC := $(LIB_SRC) $(TST).c
-
-LIB_HDR := $(TGT).h
-TST_HDR := $(LIB_HDR)
-
+CFLAGS := -std=gnu99
 CWARNS := -Wall -Wextra
-CFLAGS := -O3 -std=gnu99
 
-test: $(TST_SRC) $(TST_HDR)
-	@echo [CC] $(TST) $(CFLAGS)
-	@$(CC) -o $(TST) $(CWARNS) $(TST_SRC) $(CFLAGS)
+OBJS := $(addprefix $(OBJDIR)/, aes.o test.o)
+BINS := $(addprefix $(BINDIR)/, libaes.so test)
 
-libaes $(LIB_SRC) $(LIB_HDR):
-	@echo [CC] $(TGT).o $(CFLAGS)
-	@$(CC) -c -fpic $(CWARNS) $(LIB_SRC) $(CFLAGS)
+all: $(OBJS) $(BINS)
 
-	@echo [CC] $(LIB) $(CFLAGS)
-	@$(CC) -shared -o $(LIB) $(TGT).o
+$(BINDIR)/$(TEST): $(OBJS)
+	@echo [$(CC)] $(TEST)
+	@$(CC) -s -o $@ $(OBJS)
+
+$(BINDIR)/$(SLIB): $(OBJDIR)/aes.o
+	@echo [$(CC)] $(SLIB)
+	@$(CC) -fpic -shared -o $@ $<
+
+$(OBJDIR)/test.o: test.c
+	@echo [$(CC)] $@
+	@$(CC) $(CFLAGS) $(CWARNS) -c -o $@ $<
+
+$(OBJDIR)/aes.o: aes.c aes.h
+	@echo [$(CC)] $@
+	@$(CC) $(CFLAGS) -Ofast $(CWARNS) -c -o $@ $<
+
+$(OBJS): | $(OBJDIR)
+$(BINS): | $(BINDIR)
+
+$(OBJDIR):
+	@mkdir obj
+
+$(BINDIR):
+	@mkdir bin
 
 clean:
-	@rm *.o 2> /dev/null || true
+	@rm -rf obj bin 2> /dev/null || true
 
-	@[ ! -f $(TST) ] || rm $(TST)
-	@[ ! -f $(LIB) ] || rm $(LIB)
+.PHONY: clean

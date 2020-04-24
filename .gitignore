@@ -1,4 +1,2 @@
-*.o
-*.swp
-aes-test
-libaes.so
+obj/
+bin/
