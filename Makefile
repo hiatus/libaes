@@ -1,5 +1,6 @@
+TRGT := aes
 TEST := test
-SLIB := libaes.so
+SLIB := lib$(TRGT).so
 
 OBJDIR := obj
 BINDIR := bin
@@ -7,8 +8,8 @@ BINDIR := bin
 CFLAGS := -std=gnu99
 CWARNS := -Wall -Wextra
 
-OBJS := $(addprefix $(OBJDIR)/, aes.o test.o)
-BINS := $(addprefix $(BINDIR)/, libaes.so test)
+BINS := $(addprefix $(BINDIR)/, $(SLIB)   $(TEST))
+OBJS := $(addprefix $(OBJDIR)/, $(TRGT).o $(TEST).o)
 
 all: $(OBJS) $(BINS)
 
@@ -16,15 +17,15 @@ $(BINDIR)/$(TEST): $(OBJS)
 	@echo [$(CC)] $@
 	@$(CC) -s -o $@ $(OBJS)
 
-$(BINDIR)/$(SLIB): $(OBJDIR)/aes.o
+$(BINDIR)/$(SLIB): $(OBJDIR)/$(TRGT).o
 	@echo [$(CC)] $@
 	@$(CC) -fpic -shared -o $@ $<
 
-$(OBJDIR)/test.o: test.c
+$(OBJDIR)/$(TEST).o: $(TEST).c
 	@echo [$(CC)] $@
 	@$(CC) $(CFLAGS) $(CWARNS) -c -o $@ $<
 
-$(OBJDIR)/aes.o: aes.c aes.h
+$(OBJDIR)/$(TRGT).o: $(TRGT).c $(TRGT).h
 	@echo [$(CC)] $@
 	@$(CC) $(CFLAGS) -Ofast $(CWARNS) -c -o $@ $<
 
@@ -32,12 +33,13 @@ $(OBJS): | $(OBJDIR)
 $(BINS): | $(BINDIR)
 
 $(OBJDIR):
-	@mkdir obj
+	@mkdir $(OBJDIR)
 
 $(BINDIR):
-	@mkdir bin
+	@mkdir $(BINDIR)
 
 clean:
-	@rm -rf obj bin 2> /dev/null || true
+	@echo [rm] $(OBJDIR) $(BINDIR)
+	@rm -rf $(OBJDIR) $(BINDIR) 2> /dev/null || true
 
 .PHONY: clean
