@@ -374,7 +374,7 @@ void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
 		_cipher((state_t *)buffer, ctx->round_key);
-		buffer += AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 }
 
@@ -382,7 +382,7 @@ void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
 		_rev_cipher((state_t *)buffer, ctx->round_key);
-		buffer += AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 }
 #endif
@@ -405,7 +405,7 @@ void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 		_cipher((state_t *)buffer, ctx->round_key);
 
 		iv = (uint8_t *)buffer;
-		buffer += AES_BLK_SIZE;
+		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 
 	memcpy(ctx->iv, iv, AES_BLK_SIZE);
@@ -423,8 +423,8 @@ void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 		for (uint8_t j = 0; j < AES_BLK_SIZE; ++j)
 			*((uint8_t *)buffer + j) ^= ctx->iv[j];
 
-		buffer += AES_BLK_SIZE;
 		memcpy(ctx->iv, next_iv, AES_BLK_SIZE);
+		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 }
 #endif
