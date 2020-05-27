@@ -17,15 +17,16 @@ The default `aes.h` header defines the key size as 128 bits and enables both ECB
 #if defined(AES_ECB_MODE)
 void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key);
 
-void aes_ecb_encrypt(const struct aes_ctx *ctx, uint8_t *buffer, size_t len);
-void aes_ecb_decrypt(const struct aes_ctx *ctx, uint8_t *buffer, size_t len);
+void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len);
+void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len);
 #endif
 
 #if defined(AES_CBC_MODE)
 void aes_cbc_init(struct aes_ctx *ctx, const uint8_t *key, const uint8_t *iv);
 
-void aes_cbc_encrypt(struct aes_ctx *ctx, uint8_t *buffer, size_t len);
-void aes_cbc_decrypt(struct aes_ctx *ctx, uint8_t *buffer, size_t len);
+void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len);
+void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len);
+#endif
 #endif
 ```
 

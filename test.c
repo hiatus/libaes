@@ -34,12 +34,12 @@ int main(void)
 	aes_ecb_init(&e_ctx, key);
 	aes_ecb_init(&d_ctx, key);
 
-	aes_ecb_encrypt(&e_ctx, (uint8_t *)buffer, 32);
+	aes_ecb_encrypt(&e_ctx, buffer, 32);
 
 	printf("\n- Encrypted plaintext\n");
 	print_buffer((uint8_t *)buffer, 32);
 
-	aes_ecb_decrypt(&d_ctx, (uint8_t *)buffer, 32);
+	aes_ecb_decrypt(&d_ctx, buffer, 32);
 
 	printf("\n- Decrypted ciphertext\n");
 	print_buffer((uint8_t *)buffer, 32);
@@ -54,12 +54,12 @@ int main(void)
 	aes_cbc_init(&e_ctx, key, iv);
 	aes_cbc_init(&d_ctx, key, iv);
 
-	aes_cbc_encrypt(&e_ctx, (uint8_t *)buffer, 32);
+	aes_cbc_encrypt(&e_ctx, buffer, 32);
 
 	printf("\n- Encrypted plaintext\n");
 	print_buffer((uint8_t *)buffer, 32);
 
-	aes_cbc_decrypt(&d_ctx, (uint8_t *)buffer, 32);
+	aes_cbc_decrypt(&d_ctx, buffer, 32);
 
 	printf("\n- Decrypted ciphertext\n");
 	print_buffer((uint8_t *)buffer, 32);
