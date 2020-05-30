@@ -15,6 +15,8 @@
 typedef uint8_t state_t[4][4];
 
 
+static uint8_t aux1, aux2, aux3, aux4;
+
 static const uint8_t sbox[256] = {
 	0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
 	0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
@@ -93,10 +95,9 @@ static const uint8_t rcon[11] = {
 static void _expand_key(uint8_t *round_key, const uint8_t *key)
 {
 	uint8_t row[4];
-	uint8_t aux1, aux2;
 
 	// The first round is the key itself
-	for (uint8_t i = 0; i < AES_KEY_32BW; ++i) {
+	for (uint_fast8_t i = 0; i < AES_KEY_32BW; ++i) {
 		aux1 = i * 4;
 
 		round_key[aux1 + 0] = key[aux1 + 0];
@@ -106,7 +107,7 @@ static void _expand_key(uint8_t *round_key, const uint8_t *key)
 	}
 
 	// All subsequent rounds are derived from the previous round key
-	for (uint8_t i = AES_KEY_32BW; i < AES_COL_SIZE * (AES_NUM_RNDS + 1); ++i) {
+	for (uint_fast8_t i = AES_KEY_32BW; i < AES_COL_SIZE * (AES_NUM_RNDS + 1); ++i) {
 		aux1 = (i - 1) * 4;
 
 		row[0] = round_key[aux1++];
@@ -151,11 +152,10 @@ static void _expand_key(uint8_t *round_key, const uint8_t *key)
 	}
 }
 
-static void _add_round_key
+static inline void _add_round_key
 (uint8_t round, state_t *state , const uint8_t *round_key)
 {
-	uint8_t aux1;
-	uint8_t aux2 = round * AES_COL_SIZE * 4;
+	aux2 = round * AES_COL_SIZE * 4;
 
 	(*state)[0][0] ^= round_key[aux2];
 	(*state)[0][1] ^= round_key[aux2 + 1];
@@ -230,138 +230,152 @@ static inline void _rev_sub_bytes(state_t *state)
 	(*state)[3][3] = rev_sbox[(*state)[3][3]];
 }
 
-static void _shift_rows(state_t *state)
+static inline void _shift_rows(state_t *state)
 {
-	uint8_t tmp;
 
 	// Shift the second row 1 column to the left
-	tmp = (*state)[0][1];
+	aux1 = (*state)[0][1];
 
 	(*state)[0][1] = (*state)[1][1];
 	(*state)[1][1] = (*state)[2][1];
 	(*state)[2][1] = (*state)[3][1];
-	(*state)[3][1] = tmp;
+	(*state)[3][1] = aux1;
 
 	// Shift the third row 2 columns to the left
-	tmp = (*state)[0][2];
+	aux1 = (*state)[0][2];
 
 	(*state)[0][2] = (*state)[2][2];
-	(*state)[2][2] = tmp;
+	(*state)[2][2] = aux1;
 
-	tmp = (*state)[1][2];
+	aux1 = (*state)[1][2];
 
 	(*state)[1][2] = (*state)[3][2];
-	(*state)[3][2] = tmp;
+	(*state)[3][2] = aux1;
 
 	// Shift the fourth row 3 columns to the left
-	tmp = (*state)[0][3];
+	aux1 = (*state)[0][3];
 
 	(*state)[0][3] = (*state)[3][3];
 	(*state)[3][3] = (*state)[2][3];
 	(*state)[2][3] = (*state)[1][3];
-	(*state)[1][3] = tmp;
+	(*state)[1][3] = aux1;
 }
 
-static void _rev_shift_rows(state_t *state)
+static inline void _rev_shift_rows(state_t *state)
 {
-	uint8_t tmp;
-
 	// Shift the second row 1 column to the right
-	tmp = (*state)[3][1];
+	aux1 = (*state)[3][1];
 
 	(*state)[3][1] = (*state)[2][1];
 	(*state)[2][1] = (*state)[1][1];
 	(*state)[1][1] = (*state)[0][1];
-	(*state)[0][1] = tmp;
+	(*state)[0][1] = aux1;
 
 	// Shift the third row 2 columns to the right
-	tmp = (*state)[0][2];
+	aux1 = (*state)[0][2];
 
 	(*state)[0][2] = (*state)[2][2];
-	(*state)[2][2] = tmp;
+	(*state)[2][2] = aux1;
 
-	tmp = (*state)[1][2];
+	aux1 = (*state)[1][2];
 
 	(*state)[1][2] = (*state)[3][2];
-	(*state)[3][2] = tmp;
+	(*state)[3][2] = aux1;
 
 	// Rotate the fourth row 3 columns to the right
-	tmp = (*state)[0][3];
+	aux1 = (*state)[0][3];
 
 	(*state)[0][3] = (*state)[1][3];
 	(*state)[1][3] = (*state)[2][3];
 	(*state)[2][3] = (*state)[3][3];
-	(*state)[3][3] = tmp;
+	(*state)[3][3] = aux1;
 }
 
-static void _mix_columns(state_t *state)
+static inline void _mix_columns(state_t *state)
 {
-	uint8_t aux1, aux2;
+	aux1 = (*state)[0][0];
+	aux2 = (*state)[0][0] ^ (*state)[0][1] ^
+	       (*state)[0][2] ^ (*state)[0][3];
 
-	for (uint8_t i = 0; i < AES_COL_SIZE; ++i) {
-		aux1 = (*state)[i][0];
-		aux2 = (*state)[i][0] ^ (*state)[i][1] ^
-		       (*state)[i][2] ^ (*state)[i][3];
+	(*state)[0][0] ^= XTIME(((*state)[0][0] ^ (*state)[0][1])) ^ aux2;
+	(*state)[0][1] ^= XTIME(((*state)[0][1] ^ (*state)[0][2])) ^ aux2;
+	(*state)[0][2] ^= XTIME(((*state)[0][2] ^ (*state)[0][3])) ^ aux2;
+	(*state)[0][3] ^= XTIME(((*state)[0][3] ^ aux1))           ^ aux2;
 
-		(*state)[i][0] ^= XTIME(((*state)[i][0] ^ (*state)[i][1])) ^ aux2;
-		(*state)[i][1] ^= XTIME(((*state)[i][1] ^ (*state)[i][2])) ^ aux2;
-		(*state)[i][2] ^= XTIME(((*state)[i][2] ^ (*state)[i][3])) ^ aux2;
-		(*state)[i][3] ^= XTIME(((*state)[i][3] ^ aux1))           ^ aux2;
-	}
+	aux1 = (*state)[1][0];
+	aux2 = (*state)[1][0] ^ (*state)[1][1] ^ (*state)[1][2] ^ (*state)[1][3];
+
+	(*state)[1][0] ^= XTIME(((*state)[1][0] ^ (*state)[1][1])) ^ aux2;
+	(*state)[1][1] ^= XTIME(((*state)[1][1] ^ (*state)[1][2])) ^ aux2;
+	(*state)[1][2] ^= XTIME(((*state)[1][2] ^ (*state)[1][3])) ^ aux2;
+	(*state)[1][3] ^= XTIME(((*state)[1][3] ^ aux1))           ^ aux2;
+
+	aux1 = (*state)[2][0];
+	aux2 = (*state)[2][0] ^ (*state)[2][1] ^ (*state)[2][2] ^ (*state)[2][3];
+
+	(*state)[2][0] ^= XTIME(((*state)[2][0] ^ (*state)[2][1])) ^ aux2;
+	(*state)[2][1] ^= XTIME(((*state)[2][1] ^ (*state)[2][2])) ^ aux2;
+	(*state)[2][2] ^= XTIME(((*state)[2][2] ^ (*state)[2][3])) ^ aux2;
+	(*state)[2][3] ^= XTIME(((*state)[2][3] ^ aux1))           ^ aux2;
+
+	aux1 = (*state)[3][0];
+	aux2 = (*state)[3][0] ^ (*state)[3][1] ^ (*state)[3][2] ^ (*state)[3][3];
+
+	(*state)[3][0] ^= XTIME(((*state)[3][0] ^ (*state)[3][1])) ^ aux2;
+	(*state)[3][1] ^= XTIME(((*state)[3][1] ^ (*state)[3][2])) ^ aux2;
+	(*state)[3][2] ^= XTIME(((*state)[3][2] ^ (*state)[3][3])) ^ aux2;
+	(*state)[3][3] ^= XTIME(((*state)[3][3] ^ aux1))           ^ aux2;
 }
 
-void _rev_mix_columns(state_t *state)
+static inline void _rev_mix_columns(state_t *state)
 {
-	uint8_t a, b, c, d;
+	aux1 = (*state)[0][0]; aux2 = (*state)[0][1];
+	aux3 = (*state)[0][2]; aux4 = (*state)[0][3];
 
-	for (uint8_t i = 0; i < AES_COL_SIZE; ++i) {
-		a = (*state)[i][0]; b = (*state)[i][1];
-		c = (*state)[i][2]; d = (*state)[i][3];
+	(*state)[0][0] = MULTIPLY(aux1, 0x0e) ^ MULTIPLY(aux2, 0x0b) ^
+	                 MULTIPLY(aux3, 0x0d) ^ MULTIPLY(aux4, 0x09);
+	(*state)[0][1] = MULTIPLY(aux1, 0x09) ^ MULTIPLY(aux2, 0x0e) ^
+	                 MULTIPLY(aux3, 0x0b) ^ MULTIPLY(aux4, 0x0d);
+	(*state)[0][2] = MULTIPLY(aux1, 0x0d) ^ MULTIPLY(aux2, 0x09) ^
+	                 MULTIPLY(aux3, 0x0e) ^ MULTIPLY(aux4, 0x0b);
+	(*state)[0][3] = MULTIPLY(aux1, 0x0b) ^ MULTIPLY(aux2, 0x0d) ^
+	                 MULTIPLY(aux3, 0x09) ^ MULTIPLY(aux4, 0x0e);
 
-		(*state)[i][1] = MULTIPLY(a, 0x09) ^ MULTIPLY(b, 0x0e) ^
-		                 MULTIPLY(c, 0x0b) ^ MULTIPLY(d, 0x0d);
+	aux1 = (*state)[1][0]; aux2 = (*state)[1][1];
+	aux3 = (*state)[1][2]; aux4 = (*state)[1][3];
 
-		(*state)[i][0] = MULTIPLY(a, 0x0e) ^ MULTIPLY(b, 0x0b) ^
-		                 MULTIPLY(c, 0x0d) ^ MULTIPLY(d, 0x09);
+	(*state)[1][0] = MULTIPLY(aux1, 0x0e) ^ MULTIPLY(aux2, 0x0b) ^
+	                 MULTIPLY(aux3, 0x0d) ^ MULTIPLY(aux4, 0x09);
+	(*state)[1][1] = MULTIPLY(aux1, 0x09) ^ MULTIPLY(aux2, 0x0e) ^
+	                 MULTIPLY(aux3, 0x0b) ^ MULTIPLY(aux4, 0x0d);
+	(*state)[1][2] = MULTIPLY(aux1, 0x0d) ^ MULTIPLY(aux2, 0x09) ^
+	                 MULTIPLY(aux3, 0x0e) ^ MULTIPLY(aux4, 0x0b);
+	(*state)[1][3] = MULTIPLY(aux1, 0x0b) ^ MULTIPLY(aux2, 0x0d) ^
+	                 MULTIPLY(aux3, 0x09) ^ MULTIPLY(aux4, 0x0e);
 
-		(*state)[i][2] = MULTIPLY(a, 0x0d) ^ MULTIPLY(b, 0x09) ^
-		                 MULTIPLY(c, 0x0e) ^ MULTIPLY(d, 0x0b);
+	aux1 = (*state)[2][0]; aux2 = (*state)[2][1];
+	aux3 = (*state)[2][2]; aux4 = (*state)[2][3];
 
-		(*state)[i][3] = MULTIPLY(a, 0x0b) ^ MULTIPLY(b, 0x0d) ^
-		                 MULTIPLY(c, 0x09) ^ MULTIPLY(d, 0x0e);
-  }
-}
+	(*state)[2][0] = MULTIPLY(aux1, 0x0e) ^ MULTIPLY(aux2, 0x0b) ^
+	                 MULTIPLY(aux3, 0x0d) ^ MULTIPLY(aux4, 0x09);
+	(*state)[2][1] = MULTIPLY(aux1, 0x09) ^ MULTIPLY(aux2, 0x0e) ^
+	                 MULTIPLY(aux3, 0x0b) ^ MULTIPLY(aux4, 0x0d);
+	(*state)[2][2] = MULTIPLY(aux1, 0x0d) ^ MULTIPLY(aux2, 0x09) ^
+	                 MULTIPLY(aux3, 0x0e) ^ MULTIPLY(aux4, 0x0b);
+	(*state)[2][3] = MULTIPLY(aux1, 0x0b) ^ MULTIPLY(aux2, 0x0d) ^
+	                 MULTIPLY(aux3, 0x09) ^ MULTIPLY(aux4, 0x0e);
 
-static inline void _cipher(state_t *state, const uint8_t *round_key)
-{
-	_add_round_key(0, state, round_key);
+	aux1 = (*state)[3][0]; aux2 = (*state)[3][1];
+	aux3 = (*state)[3][2]; aux4 = (*state)[3][3];
 
-	for (uint8_t round = 1; round < AES_NUM_RNDS; ++round) {
-		_sub_bytes(state);
-		_shift_rows(state);
-		_mix_columns(state);
-		_add_round_key(round, state, round_key);
-	}
-
-	_sub_bytes(state);
-	_shift_rows(state);
-	_add_round_key(AES_NUM_RNDS, state, round_key);
-}
-
-static inline void _rev_cipher(state_t *state, const uint8_t *round_key)
-{
-	_add_round_key(AES_NUM_RNDS, state, round_key);
-
-	for (uint8_t round = AES_NUM_RNDS - 1; round; --round) {
-		_rev_shift_rows(state);
-		_rev_sub_bytes(state);
-		_add_round_key(round, state, round_key);
-		_rev_mix_columns(state);
-	}
-
-	_rev_shift_rows(state);
-	_rev_sub_bytes(state);
-	_add_round_key(0, state, round_key);
+	(*state)[3][0] = MULTIPLY(aux1, 0x0e) ^ MULTIPLY(aux2, 0x0b) ^
+	                 MULTIPLY(aux3, 0x0d) ^ MULTIPLY(aux4, 0x09);
+	(*state)[3][1] = MULTIPLY(aux1, 0x09) ^ MULTIPLY(aux2, 0x0e) ^
+	                 MULTIPLY(aux3, 0x0b) ^ MULTIPLY(aux4, 0x0d);
+	(*state)[3][2] = MULTIPLY(aux1, 0x0d) ^ MULTIPLY(aux2, 0x09) ^
+	                 MULTIPLY(aux3, 0x0e) ^ MULTIPLY(aux4, 0x0b);
+	(*state)[3][3] = MULTIPLY(aux1, 0x0b) ^ MULTIPLY(aux2, 0x0d) ^
+	                 MULTIPLY(aux3, 0x09) ^ MULTIPLY(aux4, 0x0e);
 }
 
 #if defined(AES_ECB_MODE)
@@ -373,7 +387,19 @@ void aes_ecb_init(struct aes_ctx *ctx, const uint8_t *key)
 void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		_cipher((state_t *)buffer, ctx->round_key);
+		_add_round_key(0, (state_t *)buffer, ctx->round_key);
+
+		for (uint_fast8_t round = 1; round < AES_NUM_RNDS; ++round) {
+			_sub_bytes((state_t *)buffer);
+			_shift_rows((state_t *)buffer);
+			_mix_columns((state_t *)buffer);
+			_add_round_key(round, (state_t *)buffer, ctx->round_key);
+		}
+
+		_sub_bytes((state_t *)buffer);
+		_shift_rows((state_t *)buffer);
+		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+
 		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 }
@@ -381,7 +407,19 @@ void aes_ecb_encrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 void aes_ecb_decrypt(const struct aes_ctx *ctx, void *buffer, size_t len)
 {
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		_rev_cipher((state_t *)buffer, ctx->round_key);
+		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
+
+		for (uint_fast8_t round = AES_NUM_RNDS - 1; round; --round) {
+			_rev_shift_rows((state_t *)buffer);
+			_rev_sub_bytes((state_t *)buffer);
+			_add_round_key(round, (state_t *)buffer, ctx->round_key);
+			_rev_mix_columns((state_t *)buffer);
+		}
+
+		_rev_shift_rows((state_t *)buffer);
+		_rev_sub_bytes((state_t *)buffer);
+		_add_round_key(0, (state_t *)buffer, ctx->round_key);
+
 		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
 	}
 }
@@ -399,10 +437,21 @@ void aes_cbc_encrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 	uint8_t *iv = ctx->iv;
 
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
-		for (uint8_t j = 0; j < AES_BLK_SIZE; ++j)
+		for (uint_fast8_t j = 0; j < AES_BLK_SIZE; ++j)
 			*((uint8_t *)buffer + j) ^= iv[j];
 
-		_cipher((state_t *)buffer, ctx->round_key);
+		_add_round_key(0, (state_t *)buffer, ctx->round_key);
+
+		for (uint_fast8_t round = 1; round < AES_NUM_RNDS; ++round) {
+			_sub_bytes((state_t *)buffer);
+			_shift_rows((state_t *)buffer);
+			_mix_columns((state_t *)buffer);
+			_add_round_key(round, (state_t *)buffer, ctx->round_key);
+		}
+
+		_sub_bytes((state_t *)buffer);
+		_shift_rows((state_t *)buffer);
+		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
 
 		iv = (uint8_t *)buffer;
 		buffer = (uint8_t *)buffer + AES_BLK_SIZE;
@@ -418,9 +467,20 @@ void aes_cbc_decrypt(struct aes_ctx *ctx, void *buffer, size_t len)
 	for (size_t i = 0; i < len; i += AES_BLK_SIZE) {
 		memcpy(next_iv, buffer, AES_BLK_SIZE);
 
-		_rev_cipher((state_t *)buffer, ctx->round_key);
+		_add_round_key(AES_NUM_RNDS, (state_t *)buffer, ctx->round_key);
 
-		for (uint8_t j = 0; j < AES_BLK_SIZE; ++j)
+		for (uint_fast8_t round = AES_NUM_RNDS - 1; round; --round) {
+			_rev_shift_rows((state_t *)buffer);
+			_rev_sub_bytes((state_t *)buffer);
+			_add_round_key(round, (state_t *)buffer, ctx->round_key);
+			_rev_mix_columns((state_t *)buffer);
+		}
+
+		_rev_shift_rows((state_t *)buffer);
+		_rev_sub_bytes((state_t *)buffer);
+		_add_round_key(0, (state_t *)buffer, ctx->round_key);
+
+		for (uint_fast8_t j = 0; j < AES_BLK_SIZE; ++j)
 			*((uint8_t *)buffer + j) ^= ctx->iv[j];
 
 		memcpy(ctx->iv, next_iv, AES_BLK_SIZE);

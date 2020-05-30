@@ -1,6 +1,6 @@
 libaes
 ======
-Implementation of the current AES (Rijndael cipher) in ECB and CBC modes for the purpose of studying.
+A fast implementation of the current AES (Rijndael cipher) in ECB and CBC modes.
 
 API
 ---
