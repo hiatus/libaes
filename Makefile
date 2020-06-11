@@ -6,7 +6,7 @@ OBJDIR := obj
 BINDIR := bin
 
 CFLAGS := -std=gnu99
-CWARNS := -Wall -Wextra -Wpedantic
+CWARNS := -Wall -Wextra
 
 BINS := $(addprefix $(BINDIR)/, $(SLIB)   $(TEST))
 OBJS := $(addprefix $(OBJDIR)/, $(TRGT).o $(TEST).o)
