@@ -1,11 +1,14 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "aes.h"
 
+
 static inline void fill_buffer(uint8_t *, size_t);
 static inline void print_buffer(uint8_t *, size_t);
+
 
 int main(void)
 {

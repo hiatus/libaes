@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "aes.h"
 
 // Find the product of {02} and x mod 0x1b

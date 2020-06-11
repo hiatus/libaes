@@ -5,10 +5,6 @@
 #include <stdint.h>
 #endif
 
-#ifndef _STRING_H
-#include <string.h>
-#endif
-
 #define AES_ECB_MODE
 #define AES_CBC_MODE
 
