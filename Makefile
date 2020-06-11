@@ -27,7 +27,7 @@ $(OBJDIR)/$(TEST).o: $(TEST).c
 
 $(OBJDIR)/$(TRGT).o: $(TRGT).c $(TRGT).h
 	@echo [$(CC)] $@
-	@$(CC) $(CFLAGS) -Ofast $(CWARNS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -O3 -ffast-math $(CWARNS) -c -o $@ $<
 
 $(OBJS): | $(OBJDIR)
 $(BINS): | $(BINDIR)
