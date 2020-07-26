@@ -1,33 +1,38 @@
-TRGT := aes
-TEST := test
-SLIB := lib$(TRGT).so
-
 OBJDIR := obj
 BINDIR := bin
+SRCDIR := src
+TSTDIR := $(SRCDIR)/test
+
+TARGET := aes
+TESTER := $(TARGET)-test
+SHARED := lib$(TARGET).so
 
 CFLAGS := -std=gnu99
 CWARNS := -Wall -Wextra
 
-BINS := $(addprefix $(BINDIR)/, $(SLIB)   $(TEST))
-OBJS := $(addprefix $(OBJDIR)/, $(TRGT).o $(TEST).o)
+TSTFLAGS := -O2
+AESFLAGS := -O3 -ffast-math
+
+BINS := $(addprefix $(BINDIR)/, $(SHARED)   $(TESTER))
+OBJS := $(addprefix $(OBJDIR)/, $(TARGET).o $(TESTER).o)
 
 all: $(OBJS) $(BINS)
 
-$(BINDIR)/$(TEST): $(OBJS)
+$(BINDIR)/$(TESTER): $(OBJS)
 	@echo [$(CC)] $@
 	@$(CC) -s -o $@ $(OBJS)
 
-$(BINDIR)/$(SLIB): $(OBJDIR)/$(TRGT).o
+$(BINDIR)/$(SHARED): $(OBJDIR)/$(TARGET).o
 	@echo [$(CC)] $@
 	@$(CC) -fpic -shared -o $@ $<
 
-$(OBJDIR)/$(TEST).o: $(TEST).c
+$(OBJDIR)/$(TESTER).o: $(TSTDIR)/$(TESTER).c
 	@echo [$(CC)] $@
-	@$(CC) $(CFLAGS) $(CWARNS) -c -o $@ $<
+	@$(CC) $(CWARNS) $(CFLAGS) $(TSTFLAGS) -c -o $@ $<
 
-$(OBJDIR)/$(TRGT).o: $(TRGT).c $(TRGT).h
+$(OBJDIR)/$(TARGET).o: $(SRCDIR)/$(TARGET).c $(SRCDIR)/$(TARGET).h
 	@echo [$(CC)] $@
-	@$(CC) $(CFLAGS) -O3 -ffast-math $(CWARNS) -c -o $@ $<
+	@$(CC) $(CWARNS) $(CFLAGS) $(AESFLAGS) -c -o $@ $<
 
 $(OBJS): | $(OBJDIR)
 $(BINS): | $(BINDIR)

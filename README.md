@@ -1,6 +1,6 @@
 libaes
 ======
-A fast implementation of the current AES (Rijndael cipher) in ECB and CBC modes.
+A fast and (enough) implementation of the current AES (Rijndael cipher) in ECB and CBC modes.
 
 API
 ---
@@ -41,7 +41,7 @@ $ git clone https://github.com/hiatus/libaes.git && cd libaes && make
 
 - Run it
 ```
-$ ./bin/test
+$ ./bin/aes-test
 ```
 
 References
