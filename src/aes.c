@@ -17,6 +17,7 @@
 typedef uint8_t state_t[4][4];
 
 
+static uint8_t auxv[4];
 static uint8_t aux1, aux2, aux3, aux4;
 
 static const uint8_t sbox[256] = {
@@ -94,10 +95,8 @@ static const uint8_t rcon[11] = {
 	0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
 
-static void _expand_key(uint8_t *round_key, const uint8_t *key)
+static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 {
-	uint8_t row[4];
-
 	// The first round is the key itself
 	for (uint_fast8_t i = 0; i < AES_KEY_32BW; ++i) {
 		aux1 = i * 4;
@@ -112,45 +111,45 @@ static void _expand_key(uint8_t *round_key, const uint8_t *key)
 	for (uint_fast8_t i = AES_KEY_32BW; i < AES_COL_SIZE * (AES_NUM_RNDS + 1); ++i) {
 		aux1 = (i - 1) * 4;
 
-		row[0] = round_key[aux1++];
-		row[1] = round_key[aux1++];
-		row[2] = round_key[aux1++];
-		row[3] = round_key[aux1];
+		auxv[0] = round_key[aux1++];
+		auxv[1] = round_key[aux1++];
+		auxv[2] = round_key[aux1++];
+		auxv[3] = round_key[aux1];
 
 		if (i % AES_KEY_32BW == 0) {
 			// Shift row
-			aux1 = row[0];
+			aux1 = auxv[0];
 
-			row[0] = row[1];
-			row[1] = row[2];
-			row[2] = row[3];
-			row[3] = aux1;
+			auxv[0] = auxv[1];
+			auxv[1] = auxv[2];
+			auxv[2] = auxv[3];
+			auxv[3] = aux1;
 
 			// Substitute bytes
-			row[1] = sbox[row[1]];
-			row[2] = sbox[row[2]];
-			row[3] = sbox[row[3]];
-			row[0] = sbox[row[0]] ^ rcon[i / AES_KEY_32BW];
+			auxv[1] = sbox[auxv[1]];
+			auxv[2] = sbox[auxv[2]];
+			auxv[3] = sbox[auxv[3]];
+			auxv[0] = sbox[auxv[0]] ^ rcon[i / AES_KEY_32BW];
 		}
 
 #if defined(AES256)
 		else
 		if (i % AES_KEY_32BW == 4) {
 			// Substitute bytes
-			row[0] = sbox[row[0]];
-			row[1] = sbox[row[1]];
-			row[2] = sbox[row[2]];
-			row[3] = sbox[row[3]];
+			auxv[0] = sbox[auxv[0]];
+			auxv[1] = sbox[auxv[1]];
+			auxv[2] = sbox[auxv[2]];
+			auxv[3] = sbox[auxv[3]];
 		}
 #endif
 
 		aux1 = i * 4;
 		aux2 = (i - AES_KEY_32BW) * 4;
 
-		round_key[aux1++] = round_key[aux2++] ^ row[0];
-		round_key[aux1++] = round_key[aux2++] ^ row[1];
-		round_key[aux1++] = round_key[aux2++] ^ row[2];
-		round_key[aux1]   = round_key[aux2]   ^ row[3];
+		round_key[aux1++] = round_key[aux2++] ^ auxv[0];
+		round_key[aux1++] = round_key[aux2++] ^ auxv[1];
+		round_key[aux1++] = round_key[aux2++] ^ auxv[2];
+		round_key[aux1]   = round_key[aux2]   ^ auxv[3];
 	}
 }
 
