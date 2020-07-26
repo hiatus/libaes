@@ -99,7 +99,7 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 {
 	// The first round is the key itself
 	for (uint_fast8_t i = 0; i < AES_KEY_32BW; ++i) {
-		aux1 = i * 4;
+		aux1 = i << 2; // * AES_COL_SIZE
 
 		round_key[aux1 + 0] = key[aux1 + 0];
 		round_key[aux1 + 1] = key[aux1 + 1];
@@ -109,7 +109,7 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 
 	// All subsequent rounds are derived from the previous round key
 	for (uint_fast8_t i = AES_KEY_32BW; i < AES_COL_SIZE * (AES_NUM_RNDS + 1); ++i) {
-		aux1 = (i - 1) * 4;
+		aux1 = (i - 1) << 2; // * AES_COL_SIZE
 
 		auxv[0] = round_key[aux1++];
 		auxv[1] = round_key[aux1++];
@@ -134,7 +134,7 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 
 #if defined(AES256)
 		else
-		if (i % AES_KEY_32BW == 4) {
+		if (i % AES_KEY_32BW == AES_COL_SIZE) {
 			// Substitute bytes
 			auxv[0] = sbox[auxv[0]];
 			auxv[1] = sbox[auxv[1]];
@@ -143,8 +143,8 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 		}
 #endif
 
-		aux1 = i * 4;
-		aux2 = (i - AES_KEY_32BW) * 4;
+		aux1 = i << 2; // * AES_COL_SIZE
+		aux2 = (i - AES_KEY_32BW) << 2; // * AES_COL_SIZE
 
 		round_key[aux1++] = round_key[aux2++] ^ auxv[0];
 		round_key[aux1++] = round_key[aux2++] ^ auxv[1];
@@ -156,7 +156,7 @@ static inline void _expand_key(uint8_t *round_key, const uint8_t *key)
 static inline void _add_round_key
 (uint8_t round, state_t *state , const uint8_t *round_key)
 {
-	aux2 = round * AES_COL_SIZE * 4;
+	aux2 = round << 4; // * AES_COL_SIZE * 4;
 
 	(*state)[0][0] ^= round_key[aux2];
 	(*state)[0][1] ^= round_key[aux2 + 1];
