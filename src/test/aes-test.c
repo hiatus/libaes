@@ -1,96 +1,187 @@
 #include <time.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "../aes.h"
 
+// A multiple of AES_BLK_SIZE
+#define DATA_SIZE 8192
+// Iterations when calculating average throughput
+#define DATA_ITER 1024
 
-static inline void fill_buffer(uint8_t *, size_t);
-static inline void print_buffer(uint8_t *, size_t);
+// Calculate throughput in Mbps
+#define DATA_MBPS(rtime) \
+	((double)((DATA_SIZE * DATA_ITER) / rtime / 1048576.0))
 
+static inline void memrand(void *dst, size_t n)
+{
+	srand((unsigned int)clock());
+
+	for (size_t i = 0; i < n; ++i)
+		*((uint8_t *)dst + i) = rand();
+}
+
+static inline void hex(void *src, size_t n, int end)
+{
+	for (size_t i = 0; i < n; ++i)
+		printf(" %02x", *((uint8_t *)src + i));
+
+	if (end != EOF)
+		putchar(end);
+}
+
+
+static void test_ecb_mode(uint8_t *);
+static void test_cbc_mode(uint8_t *);
 
 int main(void)
 {
-	uint8_t iv [AES_BLK_SIZE];
-	uint8_t key[AES_KEY_SIZE];
+	uint8_t data[DATA_SIZE];
 
-	struct aes_ctx e_ctx, d_ctx;
+	memrand(data, DATA_SIZE);
 
-	char buffer [33];
-	char message[33] = "this message should be encrypted";
+	printf("AES key length: %u bits\n", AES_KEY_SIZE * 8);
+	printf("Plaintext size: %u bytes\n\n", DATA_SIZE);
 
-	srand(time(NULL));
-	strncpy(buffer, message, 33);
+	puts("[ECB]");
+	test_ecb_mode(data);
 
-	fill_buffer(iv,  AES_BLK_SIZE);
-	fill_buffer(key, AES_KEY_SIZE);
+	putchar('\n');
 
-	puts("[*] Key");
-	print_buffer(key, AES_KEY_SIZE);
-
-	puts("\n[*] Initialization vector");
-	print_buffer(iv, AES_BLK_SIZE);
-
-	puts("\n\n[+] ECB mode");
-
-	aes_ecb_init(&e_ctx, key);
-	aes_ecb_init(&d_ctx, key);
-
-	aes_ecb_encrypt(&e_ctx, buffer, 32);
-
-	printf("\n- Encrypted plaintext\n");
-	print_buffer((uint8_t *)buffer, 32);
-
-	aes_ecb_decrypt(&d_ctx, buffer, 32);
-
-	printf("\n- Decrypted ciphertext\n");
-	print_buffer((uint8_t *)buffer, 32);
-
-	if (memcmp(buffer, message, 32))
-		puts("\n[-] Decryption failed");
-	else
-		printf("\n[+] Decryption succeeded: '%s'\n", buffer);
-
-	puts("\n\n[+] CBC mode");
-
-	aes_cbc_init(&e_ctx, key, iv);
-	aes_cbc_init(&d_ctx, key, iv);
-
-	aes_cbc_encrypt(&e_ctx, buffer, 32);
-
-	printf("\n- Encrypted plaintext\n");
-	print_buffer((uint8_t *)buffer, 32);
-
-	aes_cbc_decrypt(&d_ctx, buffer, 32);
-
-	printf("\n- Decrypted ciphertext\n");
-	print_buffer((uint8_t *)buffer, 32);
-
-	if (memcmp(buffer, message, 32))
-		puts("\n[-] Decryption failed");
-	else
-		printf("\n[+] Decryption succeeded: '%s'\n", buffer);
+	puts("[CBC]");
+	test_cbc_mode(data);
 
 	return 0;
 }
 
-static inline void fill_buffer(uint8_t *buffer, size_t len)
+static void test_ecb_mode(uint8_t *data)
 {
-	for (size_t i = 0; i < len; ++i)
-		buffer[i] = (uint8_t)rand();
+	double rtime;
+
+	uint8_t tmp[DATA_SIZE];
+	uint8_t key[AES_KEY_SIZE];
+
+	struct aes_ctx ectx, dctx;
+
+	memrand(key, AES_KEY_SIZE);
+
+	printf("\tKey:       ");
+	hex(key, AES_KEY_SIZE, '\n');
+
+	aes_ecb_init(&ectx, key);
+	aes_ecb_init(&dctx, key);
+
+	memcpy(tmp, data, DATA_SIZE);
+
+	printf("\n\tPlaintext: ");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	aes_ecb_encrypt(&ectx, tmp, DATA_SIZE);
+
+	printf("\tCiphertext:");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	aes_ecb_decrypt(&dctx, tmp, DATA_SIZE);
+
+	printf("\tDeciphered:");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	if (memcmp(data, tmp, DATA_SIZE))
+		puts("\n\t[!] Decryption failed");
+
+	// Encryption speed
+	rtime = (double)clock();
+
+	for (size_t i = 0; i < DATA_ITER; ++i)
+		aes_ecb_encrypt(&ectx, tmp, DATA_SIZE);
+
+	rtime = ((double)clock() - rtime) / CLOCKS_PER_SEC;
+
+	printf(
+		"\n\tEncrypted %u bytes in %.3f seconds, %.2f Mb/s",
+		DATA_SIZE * DATA_ITER, rtime, DATA_MBPS(rtime)
+	);
+
+	// Decryption speed
+	rtime = (double)clock();
+
+	for (size_t i = 0; i < DATA_ITER; ++i)
+		aes_ecb_decrypt(&dctx, tmp, DATA_SIZE);
+
+	rtime = ((double)clock() - rtime) / CLOCKS_PER_SEC;
+
+	printf(
+		"\n\tDecrypted %u bytes in %.3f seconds, %.2f Mb/s\n",
+		DATA_SIZE * DATA_ITER, rtime, DATA_MBPS(rtime)
+	);
 }
 
-static inline void print_buffer(uint8_t *buffer, size_t len)
+static void test_cbc_mode(uint8_t *data)
 {
-	size_t i;
+	double rtime;
 
-	for (i = 0; i < len; ++i) {
-		if (i % 16 == 0)
-			putchar('\n');
+	uint8_t tmp[DATA_SIZE];
 
-		printf("%02x ", buffer[i]);
-	}
+	uint8_t iv [AES_BLK_SIZE];
+	uint8_t key[AES_KEY_SIZE];
 
-	putchar('\n');
+	struct aes_ctx ectx, dctx;
+
+	memrand(iv,  AES_BLK_SIZE);
+	memrand(key, AES_KEY_SIZE);
+
+	printf("\tIV:        ");
+	hex(iv, AES_BLK_SIZE, '\n');
+
+	printf("\tKey:       ");
+	hex(key, AES_KEY_SIZE, '\n');
+
+	aes_cbc_init(&ectx, key, iv);
+	aes_cbc_init(&dctx, key, iv);
+
+	memcpy(tmp, data, DATA_SIZE);
+
+	printf("\n\tPlaintext: ");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	aes_cbc_encrypt(&ectx, tmp, DATA_SIZE);
+
+	printf("\tCiphertext:");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	aes_cbc_decrypt(&dctx, tmp, DATA_SIZE);
+
+	printf("\tDeciphered:");
+	hex(tmp, AES_BLK_SIZE, EOF); puts(" ..");
+
+	if (memcmp(data, tmp, DATA_SIZE))
+		puts("\n\t[!] Decryption failed");
+
+	// Encryption speed
+	rtime = (double)clock();
+
+	for (size_t i = 0; i < DATA_ITER; ++i)
+		aes_cbc_encrypt(&ectx, tmp, DATA_SIZE);
+
+	rtime = ((double)clock() - rtime) / CLOCKS_PER_SEC;
+
+	printf(
+		"\n\tEncrypted %u bytes in %.3f seconds, %.2f Mb/s",
+		DATA_SIZE * DATA_ITER, rtime, DATA_MBPS(rtime)
+	);
+
+	// Decryption speed
+	rtime = (double)clock();
+
+	for (size_t i = 0; i < DATA_ITER; ++i)
+		aes_cbc_decrypt(&dctx, tmp, DATA_SIZE);
+
+	rtime = ((double)clock() - rtime) / CLOCKS_PER_SEC;
+
+	printf(
+		"\n\tDecrypted %u bytes in %.3f seconds, %.2f Mb/s\n",
+		DATA_SIZE * DATA_ITER, rtime, DATA_MBPS(rtime)
+	);
 }
