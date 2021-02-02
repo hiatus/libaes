@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include "aes.h"
+#include <string.h>
 
 // Find the product of {02} and x mod 0x1b
 #define XTIME(x) ((x << 1) ^ (((x >> 7) & 1) * 0x1b))

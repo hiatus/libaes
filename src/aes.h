@@ -1,9 +1,8 @@
 #ifndef AES_H
 #define AES_H
 
-#ifndef _STDINT_H
+#include <stddef.h>
 #include <stdint.h>
-#endif
 
 #define AES_ECB_MODE
 #define AES_CBC_MODE
